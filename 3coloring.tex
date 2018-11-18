@@ -1,0 +1,158 @@
+\documentclass[fleqn]{article}
+
+\usepackage[T1, T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{amsfonts} 
+\usepackage{mathtools}
+\usepackage{nccfoots}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[right=1in, left=1in, top=1in]{geometry}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Теорема}
+
+\theoremstyle{plain}
+\newtheorem*{consequence*}{Следствие}
+
+\theoremstyle{plain}
+\newtheorem{lemma}{Лемма}
+
+\theoremstyle{definition}
+\newtheorem{defin}{Определение}
+
+
+\author{Дмитрий Камальдинов}
+\date{}
+\title{Вершинная 3-раскрашиваемость графа}
+
+
+\begin{document}
+\maketitle
+
+\section{Введение}
+Целью данного проекта является имлементация алгоритмов проверки 3-раскрашиваемость графов.
+
+\begin{defin}
+	\emph{Правильной раскраской} графа $G = G(V,E)$ в $k$ цветов называется такое разбиение 
+	$V = V_1 \sqcup V_2 \sqcup \dots \sqcup V_k$ множества его вершин на $k$ подмножеств, что 
+	$\forall e \in V_i \times V_j : e \not\in E \quad (i \not= j)$.
+\end{defin}
+
+\begin{defin}
+	Граф называется \emph{$k$--раскрашиваемым}, если для него существует правильная раскраска в $k$ цветов.
+\end{defin}
+
+\begin{defin} Пусть имеются множество $V$ из $n$ объектов и 
+множество $C$ из $k$ \emph{цветов}. Множество цветов, в которые может быть раскрашен объект $v \in V$ обозначим через $c(v)$. Также имеется множество \emph{ограничений} $W \subset 2^{(V \times C)}$. \emph{Задача удовлетворения ограничений (CSP, constraint satisfaction problem)} заключается в отыскании такой раскраски $\alpha : V \rightarrow C$, что
+\begin{itemize}
+	\item $\forall v \in V \alpha(v) \in c(v)$
+	\item $\forall w \in W \exists (v, c) \in w : \alpha(v) \not= c $.
+\end{itemize}
+\end{defin}
+
+\begin{defin}
+	(n, m)--CSP --- такая задача CSP, что
+	\begin{itemize}
+		\item $|C| = n$
+		\item $\forall w \in W : |w| = m$
+	\end{itemize}
+\end{defin}
+
+\begin{lemma}
+	Задача $k$--раскрашиваемости сводится к (3,2)--CSP.
+	\begin{proof}
+		Обозначим данный граф через $G$. Следующая задача CSP эквивалентна задаче $k$--раскрашиваемости $G$:
+		\begin{itemize}
+			\item $V = G(V)$
+			\item $C = \{1, \dots, k\}$
+			\item $c(v) = C$
+			\item $W = \{\{(v, c), (u, c)\} | \{v, u\} \in E(G), c \in C\}$
+		\end{itemize}
+	\end{proof}
+\end{lemma}
+\section{Описание алгоритма решения (3,2)--CSP}
+Определим \emph{порядок} задачи CSP как мощность множества объектов. Объекты будут также называться \emph{вершинами}.
+\begin{lemma}
+	Если в задаче (3,2)--CSP порядка $n$ существует объект, который может быть покрашен в не более, чем 2 цвета, то эта задача эквивалентна некоторой порядка $n-1$.
+	\begin{proof}
+		Обозначим этот объект через $v$. Рассмотрим 3 случая.
+		\begin{enumerate}
+			\item $|c(v) = 0|$. Тогда правильной раскраски не существует, то есть задача уже решена.
+			\item $|c(v) = 1|$. Обозначим единственный доступный цвет $v$ через $c$. Тогда если задача имеет решение, то $v$ обязана быть покрашеной в $c$. Значит, для каждого ограничения $\{(v, c), (u, \widehat{c})\}$, у вершины $u$ можно запретить цвет $\widehat{c}$, после чего удалить вершину $v$. Полученная задача эквивалентна исходной с учетом уже выбранного цвета для $v$, а её порядок на 1 меньше.
+			\item $|c(v) = 2|$. Обозначим через $c_1, c_2$ доступные цвета для $v$. $C_i \coloneqq \{(u, c) | \{(v, c_i), (u, c)\} \in W\}$. Добавим ограничения 
+$\{(u, c), (w, \widehat{c})\} \quad \forall (u,c) \in C_1, (w,\widehat{c}) \in C_2$ и удалим вершину $v$. Тогда полученная задача эквивалентна исходной. Действительно, пусть $\alpha$ --- решение (раскраска) исходной задачи. Не умаляя общности, предположим, $\alpha(v) = c_1 \implies \forall (u, c) \in C_1 : \alpha(u) \not= c$, следовательно, все новые ограничения также будут удовлетворены. Тогда $\alpha|_{V \setminus \{v\}}$ --- решение новой. Напротив, пусть $\beta$ --- решение новой задачи. Покрасим $V \setminus \{v\}$ с помощью $\beta$. Предположим противное: невозможно покрасить $v$ в один из цветов $c_1, c_2$ так, чтобы получилась правильная покраска вершин исходной задачи. Тогда существуют такие $(u, c)$ и $(w, \widehat{c})$, что $\{(u,c), (v, c_1)\} \in W$, $\{(w, \widehat{c}), (v, c_2)\} \in W$, и $\beta(u) = c$, $\beta(w) = \widehat{c}$. Но тогда $(u,c) \in C_1$ и $(w, \widehat{c}) \in C_2$, и одно из добавленных ограничений не удовлетворено.
+		\end{enumerate}
+	\end{proof}
+\end{lemma}
+
+\begin{lemma}
+	Дана задача (3,2)--CSP порядка n, имеющая решение. Предположим, существуют два таких объекта $v$ и $u$, что $|c(v)| = |c(u)| = 3$ и $\exists c_u, c_v : \{(v, c_v), (u, c_u)\} \in W$. Тогда эта задача эквивалентна некоторой порядка $n-2$.
+	\begin{proof}
+		Изменим исходную задачу четырьмя способами: в каждом сохраним все ограничения, но оставим для $v$ и $u$ только по 2 возможных цвета:
+		\begin{enumerate}
+			\item $c(v) = \{c_v, c_v+1\}; \quad c(u) = \{c_u+1, c_u+2\}$
+			\item $c(v) = \{c_v, c_v+2\}; \quad c(u) = \{c_u+1, c_u+2\}$
+			\item $c(v) = \{c_v+1, c_v+2\}; \quad c(u) = \{c_u, c_u+1\}$
+			\item $c(v) = \{c_v+1, c_v+2\}; \quad c(u) = \{c_u, c_u+2\}$ (везде сложение по модулю 3)
+		\end{enumerate}
+		Пусть одна из этих задач имеет решение $\beta$. Тогда $\beta$ также есть решение исходной задачи, так как в каждом случае невозможно покрасить $v$ и $u$ одновременно в $c_v$ и $c_u$. Напротив, пусть $\alpha$ --- решение исходной задачи, и $\alpha(v) = \widehat{c}_v, \alpha(u) = \widehat{c}_u$, где $(\widehat{c}_v, \widehat{c}_u) \not= (c_v, c_u)$. Несложным перебором можно убедиться, что в \textbf{двух}(!) из изменённых задач $c(v) \ni \widehat{c}_v$ и $c(u) \ni \widehat{c}_u$. Тогда $\alpha$ есть решение этой задачи.
+		
+		Для завершения доказательства осталось избавиться от этих двух вершин с двумя доступными цветами, используя лемму 2.
+	\end{proof}
+\end{lemma}
+
+\begin{lemma}
+	Дана задача (3,2)--CSP $I$ порядка n. Cуществуют два таких объекта $v$ и $u$, что $|c(v)| = |c(u)| = 3$ и $\exists c_u, c_v : \{(v, c_v), (u, c_u)\} \in W$. Тогда её можно свести за полиномиальное время к такой $I'$, что если $I'$ разрешима, то и $I$ имеет решение, а если $I$ разрешима, то $I'$ имеет решение с вероятностью $1/2$.
+	\begin{proof}
+		Очевидно следует из леммы 3.
+	\end{proof}
+\end{lemma}
+
+Используя лемму 4, несложно убедиться в корректности следующего алгоритма ($n$ --- количество вершин):
+\begin{algorithm}[H]
+  \begin{algorithmic}[1]
+    \Function{satisfiable}{$I$}
+    	\For {$i=1..2^{n/2}$}
+			\If {$\exists v \in V : |c(v)|=3$ and $v$ has any constraints}
+				\State reduce $I \rightarrow I'$ randomly using lemma 4
+				\State \textbf{return} satisfiable($I'$)
+			\ElsIf {$\exists v \in V : |c(v)| = 0$}
+				\State \textbf{return false}
+			\Else
+				\State {choose any $v$ (now $0 < |c(v)| <= 2$ and reduce $I \rightarrow I'$ using lemma 2}
+				\State \textbf{return} satisfible($I'$)
+			\EndIf
+    	\EndFor
+    	\State \textbf{return false}
+    \EndFunction
+  \end{algorithmic}
+\end{algorithm}
+
+Действительно, если $n/2$ раз случайно выбирать вариант меньшей задачи, то, согласно лемме 4, вероятность получить правильную раскраску есть $2^{-n/2}$, то есть если вызвать алгоритм $2^{n/2}$ раз, то в случае разрешимости задачи, ответ будет получен с вероятностью 1. Итого время работы этого алгоритма $O(O(1)2^{n/2}) = O(1.4142135623730951^n)$
+
+
+\
+
+\#TODO: 
+\begin{itemize}
+	\item более подробным разбором случаев можно улучшить константу до 1.38028
+	\item в случае задачи 3--раскрашиваемости константа (3,2)--CSP улучшается до 1.3645 с помощью некоторого препроцессинга на графе
+\end{itemize} 
+
+\section{Эксперименты}
+\begin{itemize}
+	\item Алгоритм работает корректно на тестах (проверены около 100 случайно сгенерерованных графов заведомо 3--раскрашиваемых/нераскрашиваемых)
+	\item Алгоритм тратит на подтверждение 3--раскрашиваемости графа на 100 вершинах до 16 секунд, в среднем 3 (плотность 0.6).
+	\item До 14 секунд на нераскрашиваемых на 35 вершинах (плотность 0.5)
+	\item Алгоритм работает дольше на графах с меньшей плостностью
+\end{itemize}
+\begin{thebibliography}{}
+    \bibitem{old} Richard Beigel, David Eppstein, \emph{3--Coloring in time $O(1.3446^n)$: a no--MIS algorithm}, 36th Symposium on Foundations of Computer Science, 444--453, October 1995
+    \bibitem{new} David Eppstein, \emph{Improved algorithms for 3--Coloring, 3--Edge--Coloring, and Constraint Satisfaction} 
+\end{thebibliography}
+
+\end{document}
