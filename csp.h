@@ -163,7 +163,7 @@ bool has_constraint_3_possible_colors(const CSP32Instance& csp, unsigned v, std:
     return false;
 }
 
-// check if there is any constraints with __v__
+// check if there are any constraints with __v__
 bool has_constraint(const CSP32Instance& csp, unsigned v, std::vector<bool>& is_deleted) {
     for (unsigned color = 0; color < 3; ++color)
         if (csp.is_color_possible({v, color}))
@@ -213,9 +213,6 @@ void reduce(CSP32Instance& csp, unsigned v, std::vector<bool>& is_deleted, unsig
                 else if (config1.color == config2.color && csp.is_color_possible(config1))
                     csp.prohibit_color(config1);
     }
-    else if (csp.get_possible_colors_amount(v) == 3 && !has_constraint(csp, v, is_deleted)) {
-        // is_deleted[v] = true;
-    }
 }
 
 
@@ -243,23 +240,23 @@ void prohibit_colors_by_type(CSP32Instance& csp, Constraint constr, unsigned typ
 bool algo(CSP32Instance& csp,
           std::vector<bool>& is_deleted, unsigned& alive) {
 
-    // dump(csp, is_deleted);
-
     for (unsigned v = 0; v < csp.vertices_number(); ++v) {
         if (is_deleted[v])
             continue;
-        Constraint constr;
-        if (csp.get_possible_colors_amount(v) == 3 && has_constraint_3_possible_colors(csp, v, is_deleted, constr)) {
-            unsigned type = rand() % 4;
-            prohibit_colors_by_type(csp, constr, type);
-            reduce(csp, v, is_deleted, alive);
-            return algo(csp, is_deleted, alive);
-        }
-        else if (!csp.get_possible_colors_amount(v))
+        if (!csp.get_possible_colors_amount(v))
             return false;
         else if (csp.get_possible_colors_amount(v) < 3 || !has_constraint(csp, v, is_deleted)) {
             reduce(csp, v, is_deleted, alive);
             return algo(csp, is_deleted, alive);
+        }
+        else {
+            Constraint constr;
+            has_constraint_3_possible_colors(csp, v, is_deleted, constr);
+            unsigned type = rand() % 4;
+            prohibit_colors_by_type(csp, constr, type);
+            reduce(csp, constr.c1.vertex, is_deleted, alive);
+            reduce(csp, constr.c2.vertex, is_deleted, alive);
+            return algo(csp, is_deleted, alive);    
         }
     }
     return !alive;
@@ -280,7 +277,7 @@ bool solve(const CSP32Instance& csp) {
         
         auto utility = csp;
 
-        if ( details__::algo(utility, is_deleted, alive))
+        if (details__::algo(utility, is_deleted, alive))
             return true;
     }
     
