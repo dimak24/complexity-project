@@ -1,7 +1,10 @@
-#include "csp.h"
 #include <cstdlib>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
+
+#include "csp.h"
+
 
 using three_coloring::Graph;
 
@@ -24,15 +27,26 @@ Graph read_graph(FILE* file = stdin) {
 
 int main(int argc, char** argv) {
     srand(time(0));
+
     FILE* file = stdin;
+    FILE* for_dump = nullptr;
+    
     if (argc >= 2) {
-        const char* filename = argv[1];
-        file = fopen(filename, "w");
+        auto filename = argv[1];
+        file = fopen(filename, "r");
         if (!file) {
             perror(filename);
             exit(1);
         }
     }
+    if (argc >= 4 && !strcmp("-o", argv[2])) {
+        auto filename = argv[3];
+        for_dump = fopen(filename, "w");
+        if (!for_dump) {
+            perror(filename);
+            exit(1);
+        }
+    }
     Graph graph = read_graph(file);
-    printf("%d\n", three_coloring::is_three_colorable(graph));
+    printf("%d\n", three_coloring::is_three_colorable(graph, for_dump));
 }

@@ -1,9 +1,10 @@
-#include <vector>
-#include <array>
 #include <algorithm>
-#include <vector>
+#include <assert.h>
+#include <array>
 #include <cmath>
 #include <cstdlib>
+#include <stdio.h>
+#include <vector>
 
 
 namespace three_coloring {
@@ -64,6 +65,14 @@ public:
                     }
     }
 
+    CSP32Instance& operator=(const CSP32Instance& csp) {
+        assert(N_ == csp.N_);
+
+        constraints_ = csp.constraints_;
+        constraints_matrix_ = csp.constraints_matrix_;
+        possible_colors_ = csp.possible_colors_;
+    }
+
 
     bool add_constraint(Constraint c) {
         if (constraints_matrix_[c.c1.vertex][c.c2.vertex][c.c1.color * 3 + c.c2.color])
@@ -105,6 +114,13 @@ public:
     bool is_color_possible(Configuration c) const {
         return possible_colors_[c.vertex][c.color];
     }
+
+    unsigned get_possible_color(unsigned v) const {
+        return is_color_possible({v, 0}) ? 0 :
+               is_color_possible({v, 1}) ? 1 :
+               is_color_possible({v, 2}) ? 2 : -1;
+    }
+
 
     unsigned get_possible_colors_amount(unsigned v) const {
         unsigned colors = get_possible_colors(v);
@@ -186,7 +202,7 @@ void reduce(CSP32Instance& csp, unsigned v, std::vector<bool>& is_deleted, unsig
             ++color;
         auto& constraints = csp.get_constraints({v, color});
         for (auto& config : constraints)
-            if (!is_deleted[config.vertex] && csp.is_color_possible(config))
+            if (csp.is_color_possible(config))
                 csp.prohibit_color(config);
     }
     else if (csp.get_possible_colors_amount(v) == 2) {
@@ -206,12 +222,16 @@ void reduce(CSP32Instance& csp, unsigned v, std::vector<bool>& is_deleted, unsig
 
         for (auto& config1 : constraints1)
             for (auto& config2 : constraints2)
-                if (!csp.is_color_possible(config1) || !csp.is_color_possible(config2) || is_deleted[config1.vertex] || is_deleted[config2.vertex])
+                if (!csp.is_color_possible(config1) || !csp.is_color_possible(config2))
                     continue;
                 else if (config1.vertex != config2.vertex)
                     csp.add_constraint({config1, config2});
                 else if (config1.color == config2.color && csp.is_color_possible(config1))
                     csp.prohibit_color(config1);
+    }
+    else {
+        csp.prohibit_color({v, 0});
+        csp.prohibit_color({v, 1});
     }
 }
 
@@ -267,18 +287,20 @@ bool algo(CSP32Instance& csp,
 
 
 
-bool solve(const CSP32Instance& csp) {
+bool solve(CSP32Instance& csp) {
     std::vector<bool> is_deleted(csp.vertices_number());
     unsigned alive = csp.vertices_number();
     
     for (unsigned i = 0; i < pow(2.0, csp.vertices_number() / 2); ++i) {
         is_deleted.assign(csp.vertices_number(), false);
         alive = csp.vertices_number();
-        
+
         auto utility = csp;
 
-        if (details__::algo(utility, is_deleted, alive))
+        if (details__::algo(utility, is_deleted, alive)) {
+            csp = utility;
             return true;
+        }
     }
     
     return false;
@@ -291,9 +313,36 @@ bool solve(const CSP32Instance& csp) {
 
 namespace three_coloring {
 
-bool is_three_colorable(const Graph& graph) {
+bool dot_dump(const Graph& graph, 
+              csp::CSP32Instance& solved_graph_instance,
+              FILE* for_dump) {
+    const char* colors[] = {"red", "green", "blue"};
+    fprintf(for_dump, "digraph G {\n");
+    for (unsigned v = 0; v < graph.size(); ++v) {
+        fprintf(for_dump, "    %d [label=\"%d\" color=\"%s\"];\n"
+                          "    %d -> {", v, v, colors[solved_graph_instance.get_possible_color(v)], v);
+        
+
+        bool need_comma = false;
+        for (unsigned u : graph[v]) {
+            fprintf(for_dump, "%s%d", need_comma ? ", " : "", u);
+            need_comma = true;
+        }
+        
+        fprintf(for_dump, "}\n");
+    }
+    fprintf(for_dump, "}\n");
+}
+
+
+bool is_three_colorable(const Graph& graph, FILE* for_dump = nullptr) {
     csp::CSP32Instance csp(graph);
-    return csp::solve(csp);
+    bool ans = csp::solve(csp);
+    
+    if (ans && for_dump)
+        dot_dump(graph, csp, for_dump);
+
+    return ans;
 }
 
 }
