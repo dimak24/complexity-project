@@ -29,7 +29,6 @@ int main(int argc, char** argv) {
     srand(time(0));
 
     FILE* file = stdin;
-    FILE* for_dump = nullptr;
     
     if (argc >= 2) {
         auto filename = argv[1];
@@ -39,14 +38,6 @@ int main(int argc, char** argv) {
             exit(1);
         }
     }
-    if (argc >= 4 && !strcmp("-o", argv[2])) {
-        auto filename = argv[3];
-        for_dump = fopen(filename, "w");
-        if (!for_dump) {
-            perror(filename);
-            exit(1);
-        }
-    }
     Graph graph = read_graph(file);
-    printf("%d\n", three_coloring::is_three_colorable(graph, for_dump));
+    printf("%d\n", three_coloring::is_three_colorable(graph));
 }

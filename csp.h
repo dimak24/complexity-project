@@ -313,36 +313,9 @@ bool solve(CSP32Instance& csp) {
 
 namespace three_coloring {
 
-bool dot_dump(const Graph& graph, 
-              csp::CSP32Instance& solved_graph_instance,
-              FILE* for_dump) {
-    const char* colors[] = {"red", "green", "blue"};
-    fprintf(for_dump, "digraph G {\n");
-    for (unsigned v = 0; v < graph.size(); ++v) {
-        fprintf(for_dump, "    %d [label=\"%d\" color=\"%s\"];\n"
-                          "    %d -> {", v, v, colors[solved_graph_instance.get_possible_color(v)], v);
-        
-
-        bool need_comma = false;
-        for (unsigned u : graph[v]) {
-            fprintf(for_dump, "%s%d", need_comma ? ", " : "", u);
-            need_comma = true;
-        }
-        
-        fprintf(for_dump, "}\n");
-    }
-    fprintf(for_dump, "}\n");
-}
-
-
-bool is_three_colorable(const Graph& graph, FILE* for_dump = nullptr) {
+bool is_three_colorable(const Graph& graph) {
     csp::CSP32Instance csp(graph);
-    bool ans = csp::solve(csp);
-    
-    if (ans && for_dump)
-        dot_dump(graph, csp, for_dump);
-
-    return ans;
+    return csp::solve(csp);
 }
 
 }
